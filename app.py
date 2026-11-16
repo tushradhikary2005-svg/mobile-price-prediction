@@ -1,4 +1,5 @@
 
+import os
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -21,7 +22,7 @@ st.set_page_config(
 
 
 # ==================================================
-# 2. CUSTOM CSS DESIGN
+# 2. CUSTOM CSS
 # ==================================================
 
 st.markdown("""
@@ -240,8 +241,6 @@ st.markdown("""
 # 4. DATASET CONFIGURATION
 # ==================================================
 
-DATASET_FILE = "mobile_price_dataset.csv"
-
 FEATURES = [
     "Rear_Main_Camera_MP",
     "Rear_Camera_Count",
@@ -254,6 +253,11 @@ FEATURES = [
 
 TARGET = "Price_Range_INR"
 
+DATASET_OPTIONS = [
+    "mobile_price_dataset.csv",
+    "mobile_price_training_300.csv"
+]
+
 
 # ==================================================
 # 5. LOAD DATASET AND TRAIN MODEL
@@ -262,7 +266,25 @@ TARGET = "Price_Range_INR"
 @st.cache_resource
 def train_model():
 
-    df = pd.read_csv(DATASET_FILE)
+    # Automatically find the available dataset file
+    dataset_file = None
+
+    for filename in DATASET_OPTIONS:
+        if os.path.exists(filename):
+            dataset_file = filename
+            break
+
+    if dataset_file is None:
+        raise FileNotFoundError(
+            "Dataset not found. Upload either "
+            "mobile_price_dataset.csv or "
+            "mobile_price_training_300.csv."
+        )
+
+    df = pd.read_csv(dataset_file)
+
+    # Clean column names
+    df.columns = df.columns.str.strip()
 
     required_columns = FEATURES + [TARGET]
 
@@ -273,29 +295,47 @@ def train_model():
 
     if missing_columns:
         raise ValueError(
-            "Missing columns in dataset: "
+            "Missing dataset columns: "
             + ", ".join(missing_columns)
         )
 
     df = df[required_columns].copy()
 
-    for col in required_columns:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
+    # Convert ONLY input features to numeric
+    for col in FEATURES:
+        df[col] = pd.to_numeric(
+            df[col],
+            errors="coerce"
+        )
 
+    # Keep target values as text categories
+    df[TARGET] = df[TARGET].astype("string").str.strip()
+
+    # Remove invalid rows
     df = df.replace([np.inf, -np.inf], np.nan)
-    df = df.dropna()
+
+    df = df.dropna(
+        subset=FEATURES + [TARGET]
+    )
+
+    # Remove empty target labels
+    df = df[df[TARGET] != ""]
 
     if df.empty:
-        raise ValueError("The dataset has no valid training rows.")
+        raise ValueError(
+            "No valid rows remain. Check the dataset values."
+        )
 
     if df[TARGET].nunique() < 2:
         raise ValueError(
-            "The target column must contain at least two classes."
+            "The target must contain at least two price categories."
         )
 
+    # Separate input and target
     X = df[FEATURES]
-    y = df[TARGET]
+    y = df[TARGET].astype(str)
 
+    # Main machine learning model: SVM
     model = Pipeline([
         ("scaler", StandardScaler()),
         ("svm", SVC(
@@ -306,9 +346,10 @@ def train_model():
         ))
     ])
 
+    # Train model on the complete cleaned dataset
     model.fit(X, y)
 
-    return model, df
+    return model, df, dataset_file
 
 
 # ==================================================
@@ -317,23 +358,27 @@ def train_model():
 
 try:
 
-    with st.spinner("Initializing AI model..."):
-        model, df = train_model()
+    with st.spinner("Training AI model..."):
+        model, df, dataset_file = train_model()
+
+    st.success(
+        f"AI model successfully trained using {dataset_file}"
+    )
 
 except Exception as e:
 
     st.error(f"Model initialization failed: {e}")
 
     st.info(
-        "Make sure mobile_price_dataset.csv is uploaded "
-        "in the same GitHub repository as app.py."
+        "Check that your CSV file is uploaded in the "
+        "same GitHub repository as app.py."
     )
 
     st.stop()
 
 
 # ==================================================
-# 7. HELPER FUNCTION FOR INPUT LIMITS
+# 7. INPUT LIMIT FUNCTION
 # ==================================================
 
 def get_limits(column):
@@ -379,7 +424,9 @@ with st.form("mobile_prediction_form"):
             unsafe_allow_html=True
         )
 
-        low, high, default = get_limits("Rear_Main_Camera_MP")
+        low, high, default = get_limits(
+            "Rear_Main_Camera_MP"
+        )
 
         rear_camera = st.number_input(
             "Rear Main Camera (MP)",
@@ -389,17 +436,21 @@ with st.form("mobile_prediction_form"):
             step=1.0
         )
 
-        low, high, default = get_limits("Rear_Camera_Count")
+        low, high, default = get_limits(
+            "Rear_Camera_Count"
+        )
 
         rear_count = st.number_input(
             "Number of Rear Cameras",
-            min_value=int(low),
-            max_value=int(high),
-            value=int(default),
+            min_value=int(np.floor(low)),
+            max_value=int(np.ceil(high)),
+            value=int(round(default)),
             step=1
         )
 
-        low, high, default = get_limits("Front_Camera_MP")
+        low, high, default = get_limits(
+            "Front_Camera_MP"
+        )
 
         front_camera = st.number_input(
             "Front Camera (MP)",
@@ -456,7 +507,9 @@ with st.form("mobile_prediction_form"):
             unsafe_allow_html=True
         )
 
-        low, high, default = get_limits("Display_Size_inches")
+        low, high, default = get_limits(
+            "Display_Size_inches"
+        )
 
         display = st.number_input(
             "Display Size (inches)",
@@ -494,7 +547,9 @@ if submitted:
 
         prediction = model.predict(user_data)[0]
 
+        # Save prediction in session state
         st.session_state["prediction"] = str(prediction)
+
         st.session_state["user_specs"] = user_data.copy()
 
     except Exception as e:
@@ -503,7 +558,7 @@ if submitted:
 
 
 # ==================================================
-# 11. DISPLAY PREDICTION RESULT
+# 11. DISPLAY RESULT
 # ==================================================
 
 if "prediction" in st.session_state:
@@ -572,6 +627,7 @@ if "prediction" in st.session_state:
                     <div style="color:#94a3b8;font-size:12px;">
                         {spec_names[feature]}
                     </div>
+
                     <div style="color:#f8fafc;font-size:20px;font-weight:700;">
                         {value:g} {unit}
                     </div>
