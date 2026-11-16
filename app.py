@@ -3,15 +3,14 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 
 
-# ============================================================
+# ==================================================
 # 1. PAGE CONFIGURATION
-# ============================================================
+# ==================================================
 
 st.set_page_config(
     page_title="Mobile Price Prediction AI",
@@ -21,299 +20,202 @@ st.set_page_config(
 )
 
 
-# ============================================================
-# 2. PREMIUM CSS DESIGN
-# ============================================================
+# ==================================================
+# 2. CUSTOM CSS DESIGN
+# ==================================================
 
 st.markdown("""
 <style>
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
-
-:root {
-    --bg: #060816;
-    --panel: #10162b;
-    --blue: #38bdf8;
-    --purple: #a78bfa;
-    --cyan: #67e8f9;
-    --muted: #94a3b8;
-}
-
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
-}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 .stApp {
     background:
-        radial-gradient(ellipse at 10% 0%, rgba(37,99,235,0.20), transparent 35%),
-        radial-gradient(ellipse at 90% 15%, rgba(124,58,237,0.19), transparent 35%),
-        radial-gradient(ellipse at 50% 100%, rgba(8,145,178,0.10), transparent 40%),
-        var(--bg);
+        radial-gradient(circle at 10% 10%, #172554 0%, transparent 35%),
+        radial-gradient(circle at 90% 20%, #312e81 0%, transparent 30%),
+        linear-gradient(135deg, #070b18, #10152b 55%, #090d1c);
     color: #f8fafc;
+    font-family: 'Inter', sans-serif;
 }
 
 .block-container {
-    max-width: 1180px;
+    max-width: 1150px;
     padding-top: 2rem;
     padding-bottom: 3rem;
 }
 
-#MainMenu, footer, header {
-    visibility: hidden;
-}
-
-/* HERO SECTION */
-
-.hero {
-    position: relative;
-    overflow: hidden;
-    background: linear-gradient(
-        125deg,
-        rgba(15,35,70,0.98),
-        rgba(31,24,72,0.98),
-        rgba(9,38,59,0.98)
-    );
-    border: 1px solid rgba(125,170,255,0.28);
-    border-radius: 28px;
-    padding: 48px 42px;
+.hero-card {
+    background: linear-gradient(120deg, rgba(30,41,90,0.85), rgba(20,25,55,0.75));
+    border: 1px solid rgba(129,140,248,0.3);
+    border-radius: 25px;
+    padding: 45px 38px;
     margin-bottom: 30px;
-    box-shadow:
-        0 20px 70px rgba(0,0,0,0.38),
-        inset 0 1px 0 rgba(255,255,255,0.08);
-}
-
-.hero:after {
-    content: "";
-    position: absolute;
-    width: 280px;
-    height: 280px;
-    right: -80px;
-    top: -110px;
-    border-radius: 50%;
-    background: rgba(56,189,248,0.14);
-    filter: blur(35px);
+    box-shadow: 0 15px 50px rgba(0,0,0,0.25);
 }
 
 .hero-tag {
-    color: #7dd3fc;
-    font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    margin-bottom: 18px;
+    display: inline-block;
+    padding: 8px 15px;
+    border-radius: 30px;
+    background: rgba(56,189,248,0.12);
+    border: 1px solid rgba(56,189,248,0.35);
+    color: #67e8f9;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
 }
 
 .hero-title {
     font-family: 'Space Grotesk', sans-serif;
-    color: #ffffff;
-    font-size: clamp(36px, 5vw, 58px);
-    font-weight: 800;
+    font-size: clamp(38px, 6vw, 65px);
+    font-weight: 700;
     line-height: 1.08;
-    letter-spacing: -2px;
-    margin-bottom: 20px;
-    text-shadow: 0 0 35px rgba(56,189,248,0.16);
+    color: white;
+    margin-bottom: 18px;
 }
 
 .hero-title span {
-    background: linear-gradient(90deg, #67e8f9, #60a5fa, #c4b5fd);
+    background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
 .hero-desc {
     color: #cbd5e1;
-    font-size: 15px;
-    line-height: 1.9;
-    max-width: 680px;
+    font-size: 16px;
+    line-height: 1.8;
+    max-width: 700px;
 }
 
-/* TOP LABEL */
-
-.top-label {
-    color: #64748b;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 3px;
-    text-align: center;
-    margin-bottom: 12px;
-}
-
-/* SECTION HEADINGS */
-
-.section-heading {
+.section-title {
     font-family: 'Space Grotesk', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
     color: #f8fafc;
-    font-size: 25px;
-    font-weight: 700;
-    margin-top: 24px;
-    margin-bottom: 5px;
+    margin: 25px 0 8px 0;
 }
 
-.section-description {
+.section-desc {
     color: #94a3b8;
-    font-size: 13px;
-    margin-bottom: 24px;
-    line-height: 1.7;
+    font-size: 14px;
+    margin-bottom: 20px;
 }
 
-/* INPUT PANELS */
-
-.input-panel {
-    background: linear-gradient(
-        145deg,
-        rgba(20,31,56,0.94),
-        rgba(12,20,39,0.96)
-    );
-    border: 1px solid rgba(100,140,200,0.22);
-    border-radius: 20px;
-    padding: 22px;
-    margin-bottom: 18px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.16);
-}
-
-.panel-heading {
-    color: #93c5fd;
-    font-family: 'Space Grotesk', sans-serif;
+.input-heading {
+    color: #67e8f9;
     font-size: 15px;
     font-weight: 700;
-    letter-spacing: 0.5px;
-    margin-bottom: 16px;
+    margin-top: 15px;
+    margin-bottom: 8px;
 }
-
-/* INPUT LABELS */
 
 div[data-testid="stNumberInput"] label {
-    color: #dbeafe !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
+    color: #e2e8f0 !important;
+    font-weight: 500;
 }
 
 div[data-testid="stNumberInput"] input {
-    background: #090f20 !important;
-    color: #ffffff !important;
-    border: 1px solid #344766 !important;
-    border-radius: 11px !important;
-    min-height: 43px;
-}
-
-div[data-testid="stNumberInput"] input:focus {
-    border-color: #38bdf8 !important;
-    box-shadow: 0 0 0 2px rgba(56,189,248,0.15) !important;
+    background: #111a32 !important;
+    color: white !important;
+    border: 1px solid #334155 !important;
+    border-radius: 10px !important;
 }
 
 div[data-testid="stNumberInput"] button {
-    color: #7dd3fc !important;
+    background: #1e293b !important;
+    color: #67e8f9 !important;
+    border: none !important;
 }
 
-/* PREDICTION BUTTON */
+div[data-testid="stForm"] {
+    background: rgba(15,23,42,0.65);
+    border: 1px solid rgba(100,116,139,0.3);
+    border-radius: 20px;
+    padding: 25px;
+}
 
-.stFormSubmitButton > button {
-    background: linear-gradient(100deg, #2563eb, #7c3aed, #0891b2);
-    background-size: 200% 200%;
-    color: #ffffff !important;
-    border: 1px solid rgba(147,197,253,0.35) !important;
-    border-radius: 14px !important;
-    min-height: 58px;
-    font-size: 15px !important;
+.stFormSubmitButton button {
+    background: linear-gradient(90deg, #2563eb, #7c3aed) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 12px !important;
     font-weight: 800 !important;
     letter-spacing: 1px;
-    box-shadow: 0 8px 30px rgba(59,130,246,0.25);
-    transition: all 0.25s ease;
+    padding: 15px !important;
+    min-height: 52px;
+    transition: 0.3s;
 }
 
-.stFormSubmitButton > button:hover {
-    background-position: 100% 50%;
-    transform: translateY(-3px);
-    box-shadow: 0 12px 35px rgba(124,58,237,0.42);
-    border-color: #67e8f9 !important;
+.stFormSubmitButton button:hover {
+    box-shadow: 0 0 25px rgba(99,102,241,0.5);
+    transform: translateY(-2px);
 }
-
-/* RESULT CARD */
 
 .result-card {
-    position: relative;
-    overflow: hidden;
-    background:
-        radial-gradient(circle at 50% 0%, rgba(56,189,248,0.18), transparent 50%),
-        linear-gradient(145deg, #102747, #171b40, #101c35);
-    border: 1px solid rgba(103,232,249,0.50);
-    border-radius: 25px;
-    padding: 38px 20px;
-    margin-top: 18px;
+    background: linear-gradient(120deg, rgba(30,64,175,0.35), rgba(88,28,135,0.35));
+    border: 1px solid rgba(129,140,248,0.5);
+    border-radius: 22px;
+    padding: 30px;
     text-align: center;
-    box-shadow:
-        0 15px 50px rgba(37,99,235,0.17),
-        inset 0 1px 0 rgba(255,255,255,0.08);
+    margin-top: 30px;
+    box-shadow: 0 10px 40px rgba(37,99,235,0.15);
 }
 
-.result-tag {
-    color: #7dd3fc;
-    font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 4px;
-}
-
-.result-title {
-    color: #ffffff;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 17px;
-    font-weight: 600;
-    margin-top: 15px;
+.result-label {
+    color: #a5b4fc;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    margin-bottom: 15px;
 }
 
 .result-value {
+    color: #67e8f9;
     font-family: 'Space Grotesk', sans-serif;
-    font-size: clamp(38px, 7vw, 62px);
+    font-size: clamp(35px, 6vw, 55px);
     font-weight: 800;
-    margin: 15px 0;
-    background: linear-gradient(90deg, #67e8f9, #60a5fa, #c4b5fd);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    margin: 10px 0;
     overflow-wrap: anywhere;
 }
 
 .result-note {
-    color: #a5b4fc;
-    font-size: 13px;
+    color: #cbd5e1;
+    font-size: 14px;
+    margin-top: 12px;
 }
 
-/* INFORMATION BOX */
-
-div[data-testid="stExpander"] {
-    background: rgba(17,28,50,0.85);
-    border: 1px solid rgba(100,140,200,0.22);
+.spec-card {
+    background: rgba(15,23,42,0.8);
+    border: 1px solid #334155;
     border-radius: 14px;
+    padding: 15px;
+    margin: 5px 0;
 }
-
-/* FOOTER */
 
 .footer {
-    border-top: 1px solid rgba(148,163,184,0.15);
     text-align: center;
-    color: #64748b;
-    font-size: 11px;
-    line-height: 2;
-    letter-spacing: 1px;
-    padding-top: 28px;
-    margin-top: 45px;
+    color: #94a3b8;
+    font-size: 13px;
+    margin-top: 55px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(148,163,184,0.2);
 }
 
-/* ALERTS */
-
-div[data-testid="stAlert"] {
-    border-radius: 13px;
+.footer strong {
+    color: #67e8f9;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 
-# ============================================================
-# 3. HERO SECTION - YOUR REQUESTED TOP CONTENT
-# ============================================================
+# ==================================================
+# 3. HERO SECTION
+# ==================================================
 
 st.markdown("""
-<div class="hero">
+<div class="hero-card">
 
     <div class="hero-tag">
         MACHINE LEARNING PROJECT
@@ -334,11 +236,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ============================================================
+# ==================================================
 # 4. DATASET CONFIGURATION
-# ============================================================
+# ==================================================
 
-DATA_FILE = "mobile_price_dataset.csv"
+DATASET_FILE = "mobile_price_dataset.csv"
 
 FEATURES = [
     "Rear_Main_Camera_MP",
@@ -353,47 +255,46 @@ FEATURES = [
 TARGET = "Price_Range_INR"
 
 
-# ============================================================
-# 5. SVM MODEL TRAINING
-# ============================================================
+# ==================================================
+# 5. LOAD DATASET AND TRAIN MODEL
+# ==================================================
 
 @st.cache_resource
 def train_model():
 
-    df = pd.read_csv(DATA_FILE)
+    df = pd.read_csv(DATASET_FILE)
 
-    df = df.loc[
-        :,
-        ~df.columns.str.contains("^Unnamed")
-    ]
+    required_columns = FEATURES + [TARGET]
 
-    missing = [
-        col for col in FEATURES + [TARGET]
+    missing_columns = [
+        col for col in required_columns
         if col not in df.columns
     ]
 
-    if missing:
+    if missing_columns:
         raise ValueError(
-            f"Missing dataset columns: {missing}"
+            "Missing columns in dataset: "
+            + ", ".join(missing_columns)
         )
 
-    df = df.dropna(subset=FEATURES + [TARGET])
+    df = df[required_columns].copy()
+
+    for col in required_columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    df = df.replace([np.inf, -np.inf], np.nan)
+    df = df.dropna()
+
+    if df.empty:
+        raise ValueError("The dataset has no valid training rows.")
+
+    if df[TARGET].nunique() < 2:
+        raise ValueError(
+            "The target column must contain at least two classes."
+        )
 
     X = df[FEATURES]
     y = df[TARGET]
-
-    if y.nunique() < 2:
-        raise ValueError(
-            "Dataset must contain at least two price classes."
-        )
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.20,
-        random_state=42,
-        stratify=y
-    )
 
     model = Pipeline([
         ("scaler", StandardScaler()),
@@ -405,325 +306,300 @@ def train_model():
         ))
     ])
 
-    model.fit(X_train, y_train)
+    model.fit(X, y)
 
     return model, df
 
 
-# ============================================================
-# 6. LOAD MODEL
-# ============================================================
+# ==================================================
+# 6. INITIALIZE MODEL
+# ==================================================
 
 try:
 
-    with st.spinner("INITIALIZING PREDICTION ENGINE..."):
+    with st.spinner("Initializing AI model..."):
         model, df = train_model()
-
-except FileNotFoundError:
-
-    st.error(
-        "Dataset not found. Please upload "
-        "mobile_price_dataset.csv to your GitHub repository."
-    )
-
-    st.stop()
 
 except Exception as e:
 
-    st.error(f"Model initialization error: {e}")
+    st.error(f"Model initialization failed: {e}")
+
+    st.info(
+        "Make sure mobile_price_dataset.csv is uploaded "
+        "in the same GitHub repository as app.py."
+    )
 
     st.stop()
 
 
-# ============================================================
-# 7. FEATURE LIMITS
-# ============================================================
+# ==================================================
+# 7. HELPER FUNCTION FOR INPUT LIMITS
+# ==================================================
 
-def get_limits(feature):
+def get_limits(column):
 
-    values = pd.to_numeric(
-        df[feature],
-        errors="coerce"
-    ).dropna()
+    minimum = float(df[column].min())
+    maximum = float(df[column].max())
+    median = float(df[column].median())
 
-    if values.empty:
-        raise ValueError(
-            f"No numeric data available for {feature}."
-        )
+    if minimum == maximum:
+        maximum = minimum + 1
 
-    return (
-        float(values.min()),
-        float(values.max()),
-        float(values.median())
-    )
+    return minimum, maximum, median
 
 
-# ============================================================
+# ==================================================
 # 8. INPUT SECTION
-# ============================================================
+# ==================================================
 
 st.markdown("""
-<div class="section-heading">
-    ⚡ Configure Your Device
+<div class="section-title">
+    Enter Mobile Specifications
 </div>
 
-<div class="section-description">
-    Enter the hardware specifications of your mobile phone.
-    Our AI model will analyze the details and predict its price category.
+<div class="section-desc">
+    Fill in the hardware specifications below and let the AI model
+    predict the mobile phone's price category.
 </div>
 """, unsafe_allow_html=True)
 
 
-# ============================================================
-# 9. INPUT FORM
-# ============================================================
+# ==================================================
+# 9. PREDICTION FORM
+# ==================================================
 
 with st.form("mobile_prediction_form"):
 
-    col1, col2 = st.columns(2, gap="large")
+    col1, col2 = st.columns(2)
 
     with col1:
 
-        st.markdown("""
-        <div class="input-panel">
-            <div class="panel-heading">
-                📸 &nbsp; CAMERA SYSTEM
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        rear_min, rear_max, rear_default = get_limits(
-            "Rear_Main_Camera_MP"
+        st.markdown(
+            '<div class="input-heading">📷 CAMERA SPECIFICATIONS</div>',
+            unsafe_allow_html=True
         )
+
+        low, high, default = get_limits("Rear_Main_Camera_MP")
 
         rear_camera = st.number_input(
             "Rear Main Camera (MP)",
-            min_value=rear_min,
-            max_value=rear_max,
-            value=rear_default
+            min_value=low,
+            max_value=high,
+            value=default,
+            step=1.0
         )
 
-        count_min, count_max, count_default = get_limits(
-            "Rear_Camera_Count"
-        )
+        low, high, default = get_limits("Rear_Camera_Count")
 
         rear_count = st.number_input(
             "Number of Rear Cameras",
-            min_value=int(count_min),
-            max_value=int(count_max),
-            value=int(count_default),
+            min_value=int(low),
+            max_value=int(high),
+            value=int(default),
             step=1
         )
 
-        front_min, front_max, front_default = get_limits(
-            "Front_Camera_MP"
-        )
+        low, high, default = get_limits("Front_Camera_MP")
 
         front_camera = st.number_input(
             "Front Camera (MP)",
-            min_value=front_min,
-            max_value=front_max,
-            value=front_default
+            min_value=low,
+            max_value=high,
+            value=default,
+            step=1.0
         )
 
-        st.markdown("""
-        <div class="input-panel">
-            <div class="panel-heading">
-                🧠 &nbsp; MEMORY CONFIGURATION
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            '<div class="input-heading">💾 MEMORY & STORAGE</div>',
+            unsafe_allow_html=True
+        )
 
-        ram_min, ram_max, ram_default = get_limits("RAM_GB")
+        low, high, default = get_limits("RAM_GB")
 
         ram = st.number_input(
             "RAM (GB)",
-            min_value=ram_min,
-            max_value=ram_max,
-            value=ram_default
+            min_value=low,
+            max_value=high,
+            value=default,
+            step=1.0
+        )
+
+        low, high, default = get_limits("Storage_GB")
+
+        storage = st.number_input(
+            "Internal Storage (GB)",
+            min_value=low,
+            max_value=high,
+            value=default,
+            step=1.0
         )
 
     with col2:
 
-        st.markdown("""
-        <div class="input-panel">
-            <div class="panel-heading">
-                💾 &nbsp; INTERNAL STORAGE
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        storage_min, storage_max, storage_default = get_limits(
-            "Storage_GB"
+        st.markdown(
+            '<div class="input-heading">🔋 BATTERY SPECIFICATIONS</div>',
+            unsafe_allow_html=True
         )
 
-        storage = st.number_input(
-            "Storage Capacity (GB)",
-            min_value=storage_min,
-            max_value=storage_max,
-            value=storage_default
-        )
-
-        st.markdown("""
-        <div class="input-panel">
-            <div class="panel-heading">
-                🔋 &nbsp; BATTERY SYSTEM
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        battery_min, battery_max, battery_default = get_limits(
-            "Battery_mAh"
-        )
+        low, high, default = get_limits("Battery_mAh")
 
         battery = st.number_input(
             "Battery Capacity (mAh)",
-            min_value=battery_min,
-            max_value=battery_max,
-            value=battery_default
+            min_value=low,
+            max_value=high,
+            value=default,
+            step=100.0
         )
 
-        st.markdown("""
-        <div class="input-panel">
-            <div class="panel-heading">
-                📱 &nbsp; DISPLAY TECHNOLOGY
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        display_min, display_max, display_default = get_limits(
-            "Display_Size_inches"
+        st.markdown(
+            '<div class="input-heading">📱 DISPLAY SPECIFICATIONS</div>',
+            unsafe_allow_html=True
         )
+
+        low, high, default = get_limits("Display_Size_inches")
 
         display = st.number_input(
             "Display Size (inches)",
-            min_value=display_min,
-            max_value=display_max,
-            value=display_default
+            min_value=low,
+            max_value=high,
+            value=default,
+            step=0.1
         )
 
     st.markdown("<br>", unsafe_allow_html=True)
 
     submitted = st.form_submit_button(
-        "✦  GENERATE AI PRICE PREDICTION  ✦",
+        "⚡ GENERATE AI PRICE PREDICTION",
         use_container_width=True
     )
 
 
-# ============================================================
-# 10. PREDICTION ENGINE
-# ============================================================
+# ==================================================
+# 10. GENERATE PREDICTION
+# ==================================================
 
 if submitted:
 
     user_data = pd.DataFrame([{
-
         "Rear_Main_Camera_MP": rear_camera,
-
         "Rear_Camera_Count": rear_count,
-
         "Front_Camera_MP": front_camera,
-
         "RAM_GB": ram,
-
         "Storage_GB": storage,
-
         "Battery_mAh": battery,
-
         "Display_Size_inches": display
-
     }], columns=FEATURES)
 
-    with st.spinner("ANALYZING DEVICE SPECIFICATIONS..."):
+    try:
 
         prediction = model.predict(user_data)[0]
 
-    # --------------------------------------------------------
-    # RESULT DISPLAY
-    # --------------------------------------------------------
+        st.session_state["prediction"] = str(prediction)
+        st.session_state["user_specs"] = user_data.copy()
 
-    st.markdown("""
-    <div class="section-heading">
-        ✨ AI Prediction Result
-    </div>
+    except Exception as e:
 
-    <div class="section-description">
-        Your device has been successfully analyzed.
+        st.error(f"Prediction failed: {e}")
+
+
+# ==================================================
+# 11. DISPLAY PREDICTION RESULT
+# ==================================================
+
+if "prediction" in st.session_state:
+
+    prediction = st.session_state["prediction"]
+
+    st.markdown(f"""
+    <div class="result-card">
+
+        <div class="result-label">
+            PREDICTED PRICE RANGE (INR)
+        </div>
+
+        <div class="result-value">
+            ₹ {prediction}
+        </div>
+
+        <div class="result-note">
+            Prediction generated using Support Vector Machine
+            Classification.
+        </div>
+
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown(
-        f"""
-        <div class="result-card">
+    st.markdown("""
+    <div class="section-title">
+        Your Entered Specifications
+    </div>
+    """, unsafe_allow_html=True)
 
-            <div class="result-tag">
-                PREDICTION GENERATED
-            </div>
+    saved_specs = st.session_state["user_specs"]
 
-            <div class="result-title">
-                Predicted Price Range (INR)
-            </div>
+    spec_names = {
+        "Rear_Main_Camera_MP": "Rear Main Camera",
+        "Rear_Camera_Count": "Rear Camera Count",
+        "Front_Camera_MP": "Front Camera",
+        "RAM_GB": "RAM",
+        "Storage_GB": "Storage",
+        "Battery_mAh": "Battery",
+        "Display_Size_inches": "Display Size"
+    }
 
-            <div class="result-value">
-                {prediction}
-            </div>
+    units = {
+        "Rear_Main_Camera_MP": "MP",
+        "Rear_Camera_Count": "",
+        "Front_Camera_MP": "MP",
+        "RAM_GB": "GB",
+        "Storage_GB": "GB",
+        "Battery_mAh": "mAh",
+        "Display_Size_inches": "inches"
+    }
 
-            <div class="result-note">
-                SUPPORT VECTOR MACHINE CLASSIFICATION
-            </div>
+    spec_columns = st.columns(2)
 
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    for index, feature in enumerate(FEATURES):
 
-    st.markdown("<br>", unsafe_allow_html=True)
+        value = saved_specs.iloc[0][feature]
+        unit = units[feature]
 
-    st.success(
-        "Prediction completed successfully!"
-    )
+        with spec_columns[index % 2]:
 
-    # --------------------------------------------------------
-    # USER INPUT SUMMARY
-    # --------------------------------------------------------
-
-    with st.expander("📋 VIEW DEVICE SPECIFICATIONS"):
-
-        display_data = user_data.T.reset_index()
-
-        display_data.columns = [
-            "Mobile Specification",
-            "Entered Value"
-        ]
-
-        st.dataframe(
-            display_data,
-            use_container_width=True,
-            hide_index=True
-        )
-
-    st.caption(
-        "The output represents the predicted price category "
-        "from the trained dataset, not an exact market price."
-    )
+            st.markdown(
+                f"""
+                <div class="spec-card">
+                    <div style="color:#94a3b8;font-size:12px;">
+                        {spec_names[feature]}
+                    </div>
+                    <div style="color:#f8fafc;font-size:20px;font-weight:700;">
+                        {value:g} {unit}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
 
-# ============================================================
-# 11. FOOTER
-# ============================================================
+# ==================================================
+# 12. FOOTER
+# ==================================================
 
 st.markdown("""
 <div class="footer">
 
-    MOBILE PRICE PREDICTION AI
+    <div>
+        <strong>Mobile Price Prediction AI</strong>
+    </div>
 
-    <br>
+    <div style="margin-top:8px;">
+        Machine Learning Project | Support Vector Machine
+    </div>
 
-    POWERED BY SUPPORT VECTOR MACHINE
-
-    <br>
-
-    MACHINE LEARNING • CLASSIFICATION • ARTIFICIAL INTELLIGENCE
+    <div style="margin-top:12px;">
+        App Developed By
+        <strong>Tushar, Kishan, Aman, Rajdeep & Ayush</strong>
+    </div>
 
 </div>
 """, unsafe_allow_html=True)
